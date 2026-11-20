@@ -174,11 +174,11 @@ public:
         PrintRainbowText(GetComment());
         std::cerr << std::endl;
 #else
-        std::cerr << GetColorRandom() << msg << Color::kReset;
+        std::cerr << Color::kRed << msg << Color::kReset;
 #endif
     }
 
-    template <typename ... ARGS>
+    template <typename... ARGS>
     static void PrintError(std::format_string<ARGS...> fmt, ARGS&&... args) {
         const std::string msg = std::format(fmt, std::forward<ARGS>(args)...);
         PrintError(msg);
