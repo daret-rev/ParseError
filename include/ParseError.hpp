@@ -170,7 +170,7 @@ public:
     static inline void PrintError(const std::string& msg) {
 #ifdef ENABLE_MEM_ERRORS
         PrintRainbowText(msg);
-        std::cerr << std::endl << std::endl;
+        std::cerr << std::endl;
         PrintRainbowText(GetComment());
         std::cerr << std::endl;
 #else
