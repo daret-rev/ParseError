@@ -8,101 +8,84 @@
 #include <iostream>
 #include <random>
 
-static std::random_device rd;
+class Error {
+    inline static std::random_device rd;
 
-class SplittableHash {
-    uint64_t seed_; uint64_t gamma_;
+    class SplittableHash {
+        uint64_t seed_; uint64_t gamma_;
 
-    SplittableHash(uint64_t seed, uint64_t gamma) : seed_(seed), gamma_(gamma) {};
+        SplittableHash(uint64_t seed, uint64_t gamma) : seed_(seed), gamma_(gamma) {};
 
-    uint64_t NextSeed() {
-        return (seed_ += gamma_);
-    }
-
-    static uint64_t Mix64(uint64_t z) {
-        z = (z ^ (z >> 33)) * 0xff51afd7ed558ccdL;
-        z = (z ^ (z >> 33)) * 0xc4ceb9fe1a85ec53L;
-        return z ^ (z >> 33);
-    }
-    static uint64_t Mix64Variant13(uint64_t z) {
-        z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9L;
-        z = (z ^ (z >> 27)) * 0x94d049bb133111ebL;
-        return z ^ (z >> 31);
-    }
-    static uint64_t MixGamma(uint64_t z) {
-        z = Mix64Variant13(z) | 1L;
-        int n = std::popcount(z ^ (z >> 1));
-        if (n >= 24) z ^= 0xaaaaaaaaaaaaaaaaL;
-        return z;
-    }
-    static double double_ulp_;
-    static uint64_t golden_gamma_;
-    static std::atomic<uint64_t> default_gen_;
-
-public:
-    explicit SplittableHash(uint64_t seed) : SplittableHash(seed, golden_gamma_) {};
-
-    explicit SplittableHash() {
-        uint64_t s = default_gen_.fetch_add(2*golden_gamma_);
-        this->seed_ = Mix64(s);
-        this->gamma_ = MixGamma(s + golden_gamma_);
-    }
-
-    uint64_t NextLong() {
-        return Mix64(NextSeed());
-    }
-};
-
-double SplittableHash::double_ulp_ = 1.0 / (1L << 53);
-uint64_t SplittableHash::golden_gamma_ = 0x9e3779b97f4a7c15L;
-std::atomic<uint64_t> SplittableHash::default_gen_ = std::atomic<uint64_t>(rd());
-
-static SplittableHash splittable_hash;
-
-struct Color {
-    static constexpr auto kReset = "\033[0m";
-    static constexpr auto kRed = "\033[31m";
-    static constexpr auto kGreen = "\033[32m";
-    static constexpr auto kYellow = "\033[33m";
-    static constexpr auto kBlue = "\033[34m";
-    static constexpr auto kMagenta = "\033[35m";
-    static constexpr auto kCyan = "\033[36m";
-};
-
-static const char* GetColor(uint64_t x) {
-    switch (x%6) {
-        case 0: return Color::kBlue;
-        case 1: return Color::kCyan;
-        case 2: return Color::kGreen;
-        case 3: return Color::kMagenta;
-        case 4: return Color::kRed;
-        case 5: return Color::kYellow;
-        default: ;
-    }
-    __builtin_unreachable();
-}
-
-static const char* GetColorRandom() {
-    return GetColor(splittable_hash.NextLong());
-}
-
-inline void PrintRainbowText(const std::string& msg) {
-    for (char ch : msg) {
-        if (std::isspace(static_cast<unsigned char>(ch))) {
-            std::cerr << ch;
-            continue;
+        uint64_t NextSeed() {
+            return (seed_ += gamma_);
         }
-        if ((static_cast<unsigned char>(ch) & 0xC0) != 0x80) {
-            std::cerr << GetColorRandom();
+
+        static uint64_t Mix64(uint64_t z) {
+            z = (z ^ (z >> 33)) * 0xff51afd7ed558ccdL;
+            z = (z ^ (z >> 33)) * 0xc4ceb9fe1a85ec53L;
+            return z ^ (z >> 33);
         }
-        std::cerr << ch;
+        static uint64_t Mix64Variant13(uint64_t z) {
+            z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9L;
+            z = (z ^ (z >> 27)) * 0x94d049bb133111ebL;
+            return z ^ (z >> 31);
+        }
+        static uint64_t MixGamma(uint64_t z) {
+            z = Mix64Variant13(z) | 1L;
+            int n = std::popcount(z ^ (z >> 1));
+            if (n >= 24) z ^= 0xaaaaaaaaaaaaaaaaL;
+            return z;
+        }
+        inline static double double_ulp_ = 1.0 / (1L << 53);
+        inline static uint64_t golden_gamma_ = 0x9e3779b97f4a7c15L;
+        inline static std::atomic<uint64_t> default_gen_ = std::atomic<uint64_t>(rd());
+
+    public:
+        explicit SplittableHash(uint64_t seed) : SplittableHash(seed, golden_gamma_) {};
+
+        explicit SplittableHash() {
+            uint64_t s = default_gen_.fetch_add(2*golden_gamma_);
+            this->seed_ = Mix64(s);
+            this->gamma_ = MixGamma(s + golden_gamma_);
+        }
+
+        uint64_t NextLong() {
+            return Mix64(NextSeed());
+        }
+    };
+
+    inline static SplittableHash splittable_hash{};
+
+    struct Color {
+        static constexpr auto kReset = "\033[0m";
+        static constexpr auto kRed = "\033[31m";
+        static constexpr auto kGreen = "\033[32m";
+        static constexpr auto kYellow = "\033[33m";
+        static constexpr auto kBlue = "\033[34m";
+        static constexpr auto kMagenta = "\033[35m";
+        static constexpr auto kCyan = "\033[36m";
+    };
+
+    static const char* GetColor(uint64_t x) {
+        switch (x%6) {
+            case 0: return Color::kBlue;
+            case 1: return Color::kCyan;
+            case 2: return Color::kGreen;
+            case 3: return Color::kMagenta;
+            case 4: return Color::kRed;
+            case 5: return Color::kYellow;
+            default: ;
+        }
+        __builtin_unreachable();
     }
-    std::cerr << Color::kReset;
-}
+
+    static const char* GetColorRandom() {
+        return GetColor(splittable_hash.NextLong());
+    }
 
 #ifdef ENABLE_MEM_ERRORS
-inline const char* GetComment() {
-    static constexpr const char* kComment[] = {
+    static inline const char* GetComment() {
+        static constexpr const char* kComment[] = {
         "Давай, Кирилл, ты сможешь!",
         "Не сегодня.",
         "Даже не близко.",
@@ -165,23 +148,39 @@ inline const char* GetComment() {
         "Мимо, но за старание держи +0.",
         "Искал дыру, нашёл заглушку."
     };
-    return kComment[splittable_hash.NextLong() % std::size(kComment)];
-}
+        return kComment[splittable_hash.NextLong() % std::size(kComment)];
+    }
 #endif
 
-inline void PrintError(const std::string& msg) {
+public:
+    static inline void PrintRainbowText(const std::string& msg) {
+        for (char ch : msg) {
+            if (std::isspace(static_cast<unsigned char>(ch))) {
+                std::cerr << ch;
+                continue;
+            }
+            if ((static_cast<unsigned char>(ch) & 0xC0) != 0x80) {
+                std::cerr << GetColorRandom();
+            }
+            std::cerr << ch;
+        }
+        std::cerr << Color::kReset;
+    }
+
+    static inline void PrintError(const std::string& msg) {
 #ifdef ENABLE_MEM_ERRORS
-    PrintRainbowText(msg);
-    std::cerr << std::endl << std::endl;
-    PrintRainbowText(GetComment());
-    std::cerr << std::endl;
+        PrintRainbowText(msg);
+        std::cerr << std::endl << std::endl;
+        PrintRainbowText(GetComment());
+        std::cerr << std::endl;
 #else
-    std::cerr << GetColorRandom() << msg << Color::kReset;
+        std::cerr << GetColorRandom() << msg << Color::kReset;
 #endif
-}
+    }
 
-template <typename ... ARGS>
-void PrintError(std::format_string<ARGS...> fmt, ARGS&&... args) {
-    std::string msg = std::format(fmt, std::forward<ARGS>(args)...);
-    PrintError(msg);
-}
+    template <typename ... ARGS>
+    static void PrintError(std::format_string<ARGS...> fmt, ARGS&&... args) {
+        const std::string msg = std::format(fmt, std::forward<ARGS>(args)...);
+        PrintError(msg);
+    }
+};
